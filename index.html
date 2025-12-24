@@ -1,61 +1,100 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Side Talk</title>
-  <link rel="stylesheet" href="styles.css">
-  <script type="module">
-    // Firebase Setup
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";
-    import { getFirestore } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
-    import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js";
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Side Talk</title>
+<link rel="stylesheet" href="styles.css">
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";
+import { getFirestore, collection, getDocs, addDoc } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyBbg9cxg6qGNYWyXxUKiJmBLojdXvZu6sU",
-      authDomain: "side-chat-b2553.firebaseapp.com",
-      projectId: "side-chat-b2553",
-      storageBucket: "side-chat-b2553.firebasestorage.app",
-      messagingSenderId: "1019895961728",
-      appId: "1:1019895961728:web:4e229932ff0bd9b15b2e65"
-    };
+const firebaseConfig = {
+  apiKey: "AIzaSyBbg9cxg6qGNYWyXxUKiJmBLojdXvZu6sU",
+  authDomain: "side-chat-b2553.firebaseapp.com",
+  projectId: "side-chat-b2553",
+  storageBucket: "side-chat-b2553.firebasestorage.app",
+  messagingSenderId: "1019895961728",
+  appId: "1:1019895961728:web:4e229932ff0bd9b15b2e65"
+};
 
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
-    const auth = getAuth(app);
-    let currentUserId;
-    signInAnonymously(auth).then(u => currentUserId = u.user.uid).catch(console.error);
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
 
-    // Hidden Super-Admin Access
-    let tapCount = 0;
-    function checkAdminTap() {
-      tapCount++;
-      if(tapCount === 20){
-        const password = prompt("Enter Super-Admin Password:");
-        if(password === "Akinpepe100") window.location.href = "/admin/index.html";
-        tapCount = 0;
+// Logo click for admin password
+let clickCount = 0;
+document.addEventListener("DOMContentLoaded", ()=>{
+  const logo = document.querySelector(".zoom-logo");
+  logo.addEventListener("click", ()=>{
+    clickCount++;
+    if(clickCount>=20){
+      const pw = prompt("Enter Admin Password:");
+      if(pw==="Akinpepe100"){
+        window.location.href="admin/index.html";
+      }else{
+        alert("Wrong password");
       }
+      clickCount=0;
     }
-  </script>
-  <style>
-    body { font-family: Arial, sans-serif; margin:0; background:#F9FAFB; }
-    header { background:#1E3A8A; color:white; padding:10px 20px; display:flex; align-items:center; cursor:pointer;}
-    header img { height:40px; margin-right:10px; }
-    main { display:flex; flex-wrap:wrap; justify-content:center; margin:20px; gap:20px; }
-    .card { background:white; width:220px; height:150px; display:flex; align-items:center; justify-content:center; font-size:1.2em; font-weight:bold; border-radius:10px; box-shadow:0 2px 10px rgba(0,0,0,0.1); cursor:pointer; transition: transform 0.2s; }
-    .card:hover { transform: scale(1.05); }
-  </style>
+  });
+});
+
+// Optional: track clicks on cards for analytics
+function navigateTo(section){
+  switch(section){
+    case "general": window.location.href="general-chat.html"; break;
+    case "free": window.location.href="free-chat.html"; break;
+    case "create": window.location.href="create-join.html"; break;
+    case "report": window.location.href="report-safety.html"; break;
+  }
+}
+</script>
+<style>
+/* Home page cards */
+.home-container{
+  display:flex;
+  flex-wrap:wrap;
+  justify-content:center;
+  gap:25px;
+  padding:30px;
+}
+
+.home-card{
+  background:white;
+  padding:25px;
+  border-radius:20px;
+  width:220px;
+  height:180px;
+  box-shadow:0 4px 15px rgba(0,0,0,0.1);
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  font-weight:bold;
+  font-size:1.1rem;
+  cursor:pointer;
+  transition:transform 0.2s, box-shadow 0.2s;
+  text-align:center;
+}
+
+.home-card:hover{
+  transform:translateY(-5px);
+  box-shadow:0 6px 18px rgba(0,0,0,0.15);
+}
+</style>
 </head>
 <body>
-  <header onclick="checkAdminTap()">
-    <img src="https://i.ibb.co/fVbJFkNx/large.png" alt="Logo">
-    <span>Side Talk</span>
-  </header>
-  <main>
-    <div class="card" onclick="window.location.href='/general.html'">General Chat</div>
-    <div class="card" onclick="window.location.href='/free-chats.html'">Free Chats</div>
-    <div class="card" onclick="window.location.href='/room-setup.html'">Create / Join Room</div>
-    <div class="card" onclick="window.location.href='/report.html'">Report / Safety</div>
-  </main>
+<header>
+  <img src="logo.png" alt="Logo" class="zoom-logo">
+  <span>Side Talk</span>
+</header>
+
+<div class="home-container">
+  <div class="home-card" onclick="navigateTo('general')">General Anonymous Chat</div>
+  <div class="home-card" onclick="navigateTo('free')">Free Chat</div>
+  <div class="home-card" onclick="navigateTo('create')">Create / Join Room</div>
+  <div class="home-card" onclick="navigateTo('report')">Report / Safety</div>
+</div>
+
 </body>
 </html>
