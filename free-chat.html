@@ -3,12 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Side Talk - Free Chats</title>
+<title>Side Talk - Free Chat Room</title>
 <link rel="stylesheet" href="styles.css">
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";
-import { getFirestore, collection, getDocs, addDoc, serverTimestamp, doc, updateDoc, arrayUnion } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
-import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js";
+import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, serverTimestamp, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyBbg9cxg6qGNYWyXxUKiJmBLojdXvZu6sU",
@@ -21,75 +20,151 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
-const auth = getAuth(app);
 
-let currentUserId;
-signInAnonymously(auth).then(u=> currentUserId=u.user.uid).catch(console.error);
+// Get room info from sessionStorage
+const roomId = sessionStorage.getItem("roomId");
+const roomName = sessionStorage.getItem("roomName");
+document.addEventListener("DOMContentLoaded", ()=>{
+  document.getElementById("room-title").textContent = `Room: ${roomName}`;
+});
 
-// Load free chat rooms
-async function loadRooms(){
-  const roomsRef = collection(db,"rooms");
-  const snapshot = await getDocs(roomsRef);
-  const container = document.getElementById("rooms-container");
-  container.innerHTML="";
-  snapshot.forEach(doc=>{
-    const room = doc.data();
-    if(room.type==="free"){
+let username = "";
+let clan = "";
+
+// Clan selection (optional for free chat)
+function selectClan(){
+  const clans = ["shadow","ghost","phantom","viper"];
+  clan = prompt("Choose a clan: shadow, ghost, phantom, viper");
+  if(!clans.includes(clan)){
+    alert("Invalid clan! Defaulting to 'shadow'");
+    clan = "shadow";
+  }
+  generateUsername();
+}
+
+// Generate anonymous username
+async function generateUsername(){
+  const snap = await db.collection("users").where("clan","==",clan).get();
+  const id = snap.size + 1;
+  username = `${clan}${id.toString().padStart(4,"0")}`;
+  document.getElementById("username-display").textContent = `You: ${username}`;
+}
+
+// Send message
+async function sendMessage(){
+  const input = document.getElementById("msg-input");
+  const msg = input.value.trim();
+  if(!msg) return;
+  await addDoc(collection(db,`freeRooms/${roomId}/messages`),{
+    username: username,
+    clan: clan,
+    text: msg,
+    timestamp: serverTimestamp()
+  });
+  input.value = "";
+}
+
+// Load messages in real-time
+function loadMessages(){
+  const msgsDiv = document.getElementById("messages");
+  const q = query(collection(db,`freeRooms/${roomId}/messages`), orderBy("timestamp"));
+  onSnapshot(q, snapshot=>{
+    msgsDiv.innerHTML="";
+    snapshot.forEach((docSnap,index)=>{
+      const data = docSnap.data();
       const div = document.createElement("div");
-      div.className="room-card";
-      div.textContent = room.name + " ("+room.roomId+")";
-      div.onclick = ()=> joinRoom(room.roomId);
-      container.appendChild(div);
-    }
+      div.className="message";
+      div.innerHTML=`<span class="username">${data.username}</span><br>${data.text}`;
+      msgsDiv.appendChild(div);
+
+      // Banner ad after every 50 messages
+      if((index+1) % 50 === 0){
+        const ad = document.createElement("div");
+        ad.className="banner-ad";
+        ad.textContent="Banner Ad Here";
+        msgsDiv.appendChild(ad);
+      }
+
+      // Delete messages older than 24h
+      const now = new Date().getTime();
+      if(data.timestamp){
+        const msgTime = data.timestamp.toDate().getTime();
+        if(now - msgTime > 24*60*60*1000){
+          deleteDoc(doc(db,`freeRooms/${roomId}/messages`,docSnap.id));
+        }
+      }
+    });
+    msgsDiv.scrollTop = msgsDiv.scrollHeight;
   });
 }
 
-// Join room
-async function joinRoom(roomId){
-  const userDoc = doc(db,"users",currentUserId);
-  await updateDoc(userDoc,{ roomsJoined: arrayUnion(roomId)});
-  window.location.href=`/general.html?room=${roomId}`;
-}
-
-// Create new room
-async function createRoom(){
-  const name = prompt("Enter Room Name");
-  if(!name) return;
-  const roomId = Math.random().toString(36).substring(2,8).toUpperCase();
-  await addDoc(collection(db,"rooms"),{
-    roomId: roomId,
-    name: name,
-    type: "free",
-    clanCounts:{Shadow:0,Phantom:0,Echo:0,NightWolf:0},
-    maxUsers:1000,
-    createdBy: currentUserId,
-    createdAt: serverTimestamp(),
-    expiresAt: new Date(Date.now()+24*60*60*1000),
-    adminId: currentUserId
-  });
-  loadRooms();
-}
-
-window.onload = loadRooms;
+window.onload = ()=>{
+  selectClan();
+  loadMessages();
+};
 </script>
-
 <style>
-body{ margin:0;font-family:Arial,sans-serif;background:#F9FAFB; }
-header{ background:#1E3A8A;color:white;padding:10px 20px; display:flex;align-items:center; }
-header img{ height:40px;margin-right:10px; }
-#rooms-container{ display:flex; flex-wrap:wrap; gap:15px; padding:20px; justify-content:center; }
-.room-card{ background:white;padding:15px;border-radius:10px;box-shadow:0 2px 10px rgba(0,0,0,0.1);cursor:pointer; transition: transform 0.2s; }
-.room-card:hover{ transform:scale(1.05); }
-#create-btn{ display:block; margin:20px auto; padding:10px 20px; border:none;border-radius:8px; background:#6366F1;color:white; cursor:pointer; }
+.chat-container{
+  max-width:800px;
+  margin:20px auto;
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+#messages{
+  border:1px solid #D1D5DB;
+  border-radius:12px;
+  padding:10px;
+  height:500px;
+  overflow-y:auto;
+  background:#F3F4F6;
+}
+#msg-input{
+  width:80%;
+  padding:12px;
+  border-radius:12px;
+  border:1px solid #D1D5DB;
+  outline:none;
+  margin-right:10px;
+}
+.send-btn{
+  padding:12px 20px;
+  border-radius:12px;
+  background:#6366F1;
+  color:white;
+  border:none;
+  cursor:pointer;
+  font-weight:bold;
+}
+.send-btn:hover{
+  transform:scale(1.05);
+}
+.username{
+  font-weight:bold;
+  color:#1E3A8A;
+}
+#room-title{
+  text-align:center;
+  font-weight:bold;
+  font-size:1.2rem;
+  margin-bottom:10px;
+}
 </style>
 </head>
 <body>
 <header>
-  <img src="https://i.ibb.co/fVbJFkNx/large.png" alt="Logo">
-  <span>Side Talk - Free Chats</span>
+  <img src="logo.png" alt="Logo" class="zoom-logo">
+  <span>Side Talk - Free Chat Room</span>
 </header>
 
-<button id="create-btn" onclick="createRoom()">+ Create New Room</button>
-<div id="rooms-container"></div>
+<div class="chat-container">
+  <div id="username-display"></div>
+  <div id="room-title"></div>
+  <div id="messages"></div>
+  <div style="display:flex; justify-content:center; margin-top:10px;">
+    <input type="text" id="msg-input" placeholder="Type a message...">
+    <button class="send-btn" onclick="sendMessage()">Send</button>
+  </div>
+</div>
 </body>
 </html>
