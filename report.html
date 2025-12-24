@@ -8,7 +8,6 @@
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";
 import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
-import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyBbg9cxg6qGNYWyXxUKiJmBLojdXvZu6sU",
@@ -21,40 +20,89 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
-const auth = getAuth(app);
 
-let currentUserId;
-signInAnonymously(auth).then(u=> currentUserId=u.user.uid).catch(console.error);
+// Submit report
+async function submitReport(){
+  const category = document.getElementById("report-category").value.trim();
+  const description = document.getElementById("report-description").value.trim();
 
-async function sendReport(){
-  const content = document.getElementById("report-text").value.trim();
-  if(!content) return alert("Please write a report.");
+  if(!category || !description){
+    alert("Please fill in all fields!");
+    return;
+  }
+
   await addDoc(collection(db,"reports"),{
-    userId: currentUserId,
-    content: content,
+    category: category,
+    description: description,
     timestamp: serverTimestamp()
   });
-  alert("Report sent!");
-  document.getElementById("report-text").value="";
+
+  alert("Report submitted successfully!");
+  document.getElementById("report-form").reset();
 }
 </script>
-
 <style>
-body{ margin:0;font-family:Arial,sans-serif;background:#F9FAFB; text-align:center; }
-header{ background:#1E3A8A;color:white;padding:10px 20px; display:flex;align-items:center; justify-content:center;}
-header img{ height:40px;margin-right:10px; }
-textarea{ width:80%; height:150px; margin:20px auto; display:block; border-radius:10px; border:1px solid #ccc; padding:10px; font-size:1em; }
-button{ padding:10px 25px; border:none; border-radius:10px; background:#6366F1;color:white; cursor:pointer; font-size:1.1em; }
-button:hover{ transform: scale(1.05); }
+.page-container{
+  max-width:600px;
+  margin:50px auto;
+  display:flex;
+  flex-direction:column;
+  gap:25px;
+  padding:20px;
+}
+
+input, select, textarea{
+  width:100%;
+  padding:12px;
+  border-radius:12px;
+  border:1px solid #D1D5DB;
+  font-size:1rem;
+  outline:none;
+}
+
+textarea{
+  height:150px;
+}
+
+button{
+  padding:12px 25px;
+  border-radius:12px;
+  border:none;
+  background:#6366F1;
+  color:white;
+  font-weight:bold;
+  cursor:pointer;
+  transition:transform 0.2s;
+}
+
+button:hover{
+  transform:scale(1.05);
+}
 </style>
 </head>
 <body>
 <header>
-  <img src="https://i.ibb.co/fVbJFkNx/large.png" alt="Logo">
+  <img src="logo.png" alt="Logo" class="zoom-logo">
   <span>Side Talk - Report / Safety</span>
 </header>
 
-<textarea id="report-text" placeholder="Write your report or complaint here..."></textarea>
-<button onclick="sendReport()">Send Report</button>
+<div class="page-container">
+  <form id="report-form" onsubmit="event.preventDefault(); submitReport();">
+    <label for="report-category">Report Category</label>
+    <select id="report-category">
+      <option value="">Select Category</option>
+      <option value="Abuse">Abuse</option>
+      <option value="Spam">Spam</option>
+      <option value="Harassment">Harassment</option>
+      <option value="Other">Other</option>
+    </select>
+
+    <label for="report-description">Description</label>
+    <textarea id="report-description" placeholder="Describe the issue..."></textarea>
+
+    <button type="submit">Submit Report</button>
+  </form>
+</div>
+
 </body>
 </html>
