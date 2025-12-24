@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Side Talk - Create / Join Room</title>
+<link rel="stylesheet" href="styles.css">
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";
+import { getFirestore, collection, addDoc, doc, getDoc, updateDoc, arrayUnion } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
+import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBbg9cxg6qGNYWyXxUKiJmBLojdXvZu6sU",
+  authDomain: "side-chat-b2553.firebaseapp.com",
+  projectId: "side-chat-b2553",
+  storageBucket: "side-chat-b2553.firebasestorage.app",
+  messagingSenderId: "1019895961728",
+  appId: "1:1019895961728:web:4e229932ff0bd9b15b2e65"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const auth = getAuth(app);
+
+let currentUserId;
+signInAnonymously(auth).then(u=> currentUserId=u.user.uid).catch(console.error);
+
+// Create room
+async function createRoom(){
+  const name = prompt("Enter Room Name");
+  const roomId = Math.random().toString(36).substring(2,8).toUpperCase();
+  await addDoc(collection(db,"rooms"),{
+    roomId: roomId,
+    name: name,
+    type:"private",
+    clanCounts:{Shadow:0,Phantom:0,Echo:0,NightWolf:0},
+    maxUsers:1000,
+    createdBy: currentUserId,
+    createdAt: new Date(),
+    expiresAt: new Date(Date.now()+24*60*60*1000),
+    adminId: currentUserId
+  });
+  alert("Room Created! Code: "+roomId);
+}
+
+// Join room
+async function joinRoom(){
+  const code = prompt("Enter Room Code");
+  const roomDoc = doc(db,"rooms",code);
+  const snap = await getDoc(roomDoc);
+  if(!snap.exists()){ alert("Room not found"); return; }
+  await updateDoc(doc(db,"users",currentUserId),{ roomsJoined: arrayUnion(code) });
+  window.location.href=`/general.html?room=${code}`;
+}
+</script>
+
+<style>
+body{ margin:0;font-family:Arial,sans-serif;background:#F9FAFB; text-align:center; }
+header{ background:#1E3A8A;color:white;padding:10px 20px; display:flex;align-items:center; justify-content:center;}
+header img{ height:40px;margin-right:10px; }
+button{ margin:20px; padding:15px 30px; border:none; border-radius:10px; background:#6366F1;color:white; cursor:pointer; font-size:1.1em; transition: transform 0.2s; }
+button:hover{ transform: scale(1.05); }
+</style>
+</head>
+<body>
+<header>
+  <img src="https://i.ibb.co/fVbJFkNx/large.png" alt="Logo">
+  <span>Side Talk - Create / Join Room</span>
+</header>
+
+<button onclick="createRoom()">+ Create Room</button>
+<button onclick="joinRoom()">Join Room</button>
+</body>
+</html>
