@@ -6,197 +6,144 @@
 <title>Side Talk - General Chat</title>
 <link rel="stylesheet" href="styles.css">
 <script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";
-  import { getFirestore, collection, doc, setDoc, getDoc, updateDoc, arrayUnion, addDoc, serverTimestamp, query, orderBy, onSnapshot } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
-  import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js";
-  import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-storage.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";
+import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
 
-  const firebaseConfig = {
-    apiKey: "AIzaSyBbg9cxg6qGNYWyXxUKiJmBLojdXvZu6sU",
-    authDomain: "side-chat-b2553.firebaseapp.com",
-    projectId: "side-chat-b2553",
-    storageBucket: "side-chat-b2553.firebasestorage.app",
-    messagingSenderId: "1019895961728",
-    appId: "1:1019895961728:web:4e229932ff0bd9b15b2e65"
-  };
+const firebaseConfig = {
+  apiKey: "AIzaSyBbg9cxg6qGNYWyXxUKiJmBLojdXvZu6sU",
+  authDomain: "side-chat-b2553.firebaseapp.com",
+  projectId: "side-chat-b2553",
+  storageBucket: "side-chat-b2553.firebasestorage.app",
+  messagingSenderId: "1019895961728",
+  appId: "1:1019895961728:web:4e229932ff0bd9b15b2e65"
+};
 
-  const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app);
-  const auth = getAuth(app);
-  const storage = getStorage(app);
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
 
-  let currentUserId, currentUsername;
-  let messageCount = 0;
-  let bannerIndex = 0;
+let username = "";
+let clan = "";
 
-  signInAnonymously(auth).then(u=> currentUserId=u.user.uid).catch(console.error);
+// Prompt for clan selection
+function selectClan(){
+  const clans = ["shadow","ghost","phantom","viper"];
+  clan = prompt("Choose a clan: shadow, ghost, phantom, viper");
+  if(!clans.includes(clan)){
+    alert("Invalid clan! Defaulting to 'shadow'");
+    clan = "shadow";
+  }
+  generateUsername();
+}
 
-  // Clan selection & username
-  async function selectClan(clanName){
-    const clanDoc = doc(db,"clans",clanName);
-    const clanSnap = await getDoc(clanDoc);
-    if(!clanSnap.exists()){ alert("Clan does not exist"); return; }
+// Generate anonymous username
+async function generateUsername(){
+  const snap = await db.collection("users").where("clan","==",clan).get();
+  const id = snap.size + 1;
+  username = `${clan}${id.toString().padStart(4,"0")}`;
+  document.getElementById("username-display").textContent = `You: ${username}`;
+}
 
-    const nextNumber = clanSnap.data().currentUsers + 1;
-    currentUsername = `${clanName}${String(nextNumber).padStart(4,"0")}`;
-    await updateDoc(clanDoc,{ currentUsers: nextNumber });
+// Send message
+async function sendMessage(){
+  const input = document.getElementById("msg-input");
+  const msg = input.value.trim();
+  if(!msg) return;
+  await addDoc(collection(db,"messages"),{
+    username: username,
+    clan: clan,
+    text: msg,
+    timestamp: serverTimestamp()
+  });
+  input.value = "";
+}
 
-    await setDoc(doc(db,"users",currentUserId),{
-      username: currentUsername,
-      clan: clanName,
-      roomsJoined: arrayUnion("general"),
-      joinedAt: new Date(),
-      lastActive: new Date(),
-      isPartner: false,
-      totalTimeToday:0,
-      totalTimeWeek:0
+// Listen for messages in real-time
+function loadMessages(){
+  const msgsDiv = document.getElementById("messages");
+  const q = query(collection(db,"messages"), orderBy("timestamp"));
+  onSnapshot(q, snapshot=>{
+    msgsDiv.innerHTML="";
+    snapshot.forEach(doc=>{
+      const data = doc.data();
+      const div = document.createElement("div");
+      div.className="message";
+      div.innerHTML=`<span class="username">${data.username}</span><br>${data.text}`;
+      msgsDiv.appendChild(div);
+
+      // Add banner ad after every 50 messages
+      if(snapshot.size % 50 === 0){
+        const ad = document.createElement("div");
+        ad.className="banner-ad";
+        ad.textContent="Banner Ad Here";
+        msgsDiv.appendChild(ad);
+      }
     });
+    msgsDiv.scrollTop = msgsDiv.scrollHeight;
+  });
+}
 
-    document.getElementById("clan-selection").style.display="none";
-    document.getElementById("chat-section").style.display="flex";
-    startListeningMessages();
-    startBannerRotation();
-  }
-
-  // Send message
-  async function sendMessage(){
-    const input = document.getElementById("message-input");
-    const content = input.value.trim();
-    if(!content) return;
-
-    await addDoc(collection(db,"rooms","general","messages"),{
-      sender: currentUsername,
-      content: content,
-      type: "text",
-      timestamp: serverTimestamp(),
-      viewed: true
-    });
-    input.value="";
-    messageCount++;
-    showChatAdIfNeeded();
-  }
-
-  // Send voice note
-  async function sendVoiceNote(file){
-    if(!file) return;
-    if(file.size > 3*60*1024*1024) { alert("Voice note max 3 minutes"); return; }
-
-    const storageRef = ref(storage, `voiceNotes/${Date.now()}_${file.name}`);
-    await uploadBytes(storageRef,file);
-    const url = await getDownloadURL(storageRef);
-
-    await addDoc(collection(db,"rooms","general","messages"),{
-      sender: currentUsername,
-      content: "Voice Note",
-      type: "voice",
-      voiceUrl: url,
-      timestamp: serverTimestamp(),
-      viewed: false
-    });
-    messageCount++;
-    showChatAdIfNeeded();
-  }
-
-  // Listen for messages
-  function startListeningMessages(){
-    const q = query(collection(db,"rooms","general","messages"), orderBy("timestamp","asc"));
-    onSnapshot(q,snap=>{
-      const chatBox = document.getElementById("chat-box");
-      chatBox.innerHTML="";
-      snap.forEach(doc=>{
-        const msg = doc.data();
-        const div = document.createElement("div");
-        div.className="chat-message";
-
-        if(msg.type==="text"){
-          div.textContent=`${msg.sender}: ${msg.content}`;
-        } else if(msg.type==="voice"){
-          const btn = document.createElement("button");
-          btn.textContent=`${msg.sender}: Play Voice Note`;
-          btn.onclick=()=>{
-            const audio = new Audio(msg.voiceUrl);
-            audio.play();
-            if(!msg.viewed){
-              updateDoc(doc(db,"rooms","general","messages",doc.id),{viewed:true});
-              btn.disabled=true; btn.textContent="Voice Note Played";
-            }
-          }
-          if(msg.viewed){ btn.disabled=true; btn.textContent="Voice Note Played"; }
-          div.appendChild(btn);
-        }
-        chatBox.appendChild(div);
-      });
-      chatBox.scrollTop = chatBox.scrollHeight;
-    });
-  }
-
-  // Chat ad every 50 messages
-  function showChatAdIfNeeded(){
-    if(messageCount % 50 === 0){
-      const adBox = document.getElementById("chat-ad");
-      adBox.style.display="block";
-      setTimeout(()=>{ adBox.style.display="none"; },10000);
-    }
-  }
-
-  // Banner rotation
-  const banners = [
-    "📢 Ad Banner 1",
-    "📢 Ad Banner 2",
-    "📢 Ad Banner 3"
-  ];
-  function startBannerRotation(){
-    const bannerBox = document.getElementById("banner-ad");
-    bannerBox.textContent = banners[bannerIndex];
-    setInterval(()=>{
-      bannerIndex = (bannerIndex+1)%banners.length;
-      bannerBox.textContent = banners[bannerIndex];
-    },30000);
-  }
+window.onload = ()=>{
+  selectClan();
+  loadMessages();
+};
 
 </script>
-
 <style>
-body{ margin:0;font-family:Arial,sans-serif;background:#F9FAFB; }
-header{ background:#1E3A8A;color:white;padding:10px 20px; display:flex;align-items:center; }
-header img{ height:40px;margin-right:10px; }
-#clan-selection{ display:flex;justify-content:center;margin:20px;gap:15px; }
-.clan-btn{ padding:10px 20px;border:none;border-radius:8px;color:white;font-weight:bold; cursor:pointer; transition: transform 0.2s;}
-.clan-btn:hover{ transform:scale(1.05); }
-#chat-section{ display:none; flex-direction:column; height:calc(100vh-100px); margin:0 20px; }
-#chat-box{ flex:1; overflow-y:auto; border:1px solid #ccc; padding:10px; border-radius:10px; background:white; }
-#message-form{ display:flex; margin-top:10px; }
-#message-input{ flex:1;padding:10px;border-radius:8px;border:1px solid #ccc;margin-right:10px; }
-#send-btn{ padding:10px 20px;border:none;background:#6366F1;color:white;border-radius:8px; cursor:pointer; }
-#chat-ad{ display:none; margin-top:10px; padding:10px;background:#FBBF24; text-align:center; border-radius:8px; font-weight:bold; }
-#banner-ad{ position:fixed; bottom:0; width:100%; padding:15px; background:#F472B6; text-align:center; font-weight:bold; color:white; }
-#voice-input{ margin-left:10px; }
+.chat-container{
+  max-width:800px;
+  margin:20px auto;
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+#messages{
+  border:1px solid #D1D5DB;
+  border-radius:12px;
+  padding:10px;
+  height:500px;
+  overflow-y:auto;
+  background:#F3F4F6;
+}
+#msg-input{
+  width:80%;
+  padding:12px;
+  border-radius:12px;
+  border:1px solid #D1D5DB;
+  outline:none;
+  margin-right:10px;
+}
+.send-btn{
+  padding:12px 20px;
+  border-radius:12px;
+  background:#6366F1;
+  color:white;
+  border:none;
+  cursor:pointer;
+  font-weight:bold;
+}
+.send-btn:hover{
+  transform:scale(1.05);
+}
+.username{
+  font-weight:bold;
+  color:#1E3A8A;
+}
 </style>
 </head>
 <body>
 <header>
-  <img src="https://i.ibb.co/fVbJFkNx/large.png" alt="Logo">
+  <img src="logo.png" alt="Logo" class="zoom-logo">
   <span>Side Talk - General Chat</span>
 </header>
 
-<div id="clan-selection">
-  <button class="clan-btn" style="background:#6366F1" onclick="selectClan('Shadow')">Shadow</button>
-  <button class="clan-btn" style="background:#F472B6" onclick="selectClan('Phantom')">Phantom</button>
-  <button class="clan-btn" style="background:#34D399" onclick="selectClan('Echo')">Echo</button>
-  <button class="clan-btn" style="background:#FBBF24" onclick="selectClan('NightWolf')">NightWolf</button>
+<div class="chat-container">
+  <div id="username-display"></div>
+  <div id="messages"></div>
+  <div style="display:flex; justify-content:center; margin-top:10px;">
+    <input type="text" id="msg-input" placeholder="Type a message...">
+    <button class="send-btn" onclick="sendMessage()">Send</button>
+  </div>
 </div>
-
-<div id="chat-section">
-  <div id="chat-box"></div>
-  <form id="message-form" onsubmit="event.preventDefault(); sendMessage();">
-    <input type="text" id="message-input" placeholder="Type your message...">
-    <input type="file" id="voice-input" accept="audio/*" onchange="sendVoiceNote(this.files[0])">
-    <button type="submit" id="send-btn">Send</button>
-  </form>
-  <div id="chat-ad">📢 Sponsored Ad Here</div>
-</div>
-
-<div id="banner-ad"></div>
 
 </body>
 </html>
