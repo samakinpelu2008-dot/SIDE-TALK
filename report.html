@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Side Talk - Report / Safety</title>
+<link rel="stylesheet" href="styles.css">
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";
+import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
+import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBbg9cxg6qGNYWyXxUKiJmBLojdXvZu6sU",
+  authDomain: "side-chat-b2553.firebaseapp.com",
+  projectId: "side-chat-b2553",
+  storageBucket: "side-chat-b2553.firebasestorage.app",
+  messagingSenderId: "1019895961728",
+  appId: "1:1019895961728:web:4e229932ff0bd9b15b2e65"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const auth = getAuth(app);
+
+let currentUserId;
+signInAnonymously(auth).then(u=> currentUserId=u.user.uid).catch(console.error);
+
+async function sendReport(){
+  const content = document.getElementById("report-text").value.trim();
+  if(!content) return alert("Please write a report.");
+  await addDoc(collection(db,"reports"),{
+    userId: currentUserId,
+    content: content,
+    timestamp: serverTimestamp()
+  });
+  alert("Report sent!");
+  document.getElementById("report-text").value="";
+}
+</script>
+
+<style>
+body{ margin:0;font-family:Arial,sans-serif;background:#F9FAFB; text-align:center; }
+header{ background:#1E3A8A;color:white;padding:10px 20px; display:flex;align-items:center; justify-content:center;}
+header img{ height:40px;margin-right:10px; }
+textarea{ width:80%; height:150px; margin:20px auto; display:block; border-radius:10px; border:1px solid #ccc; padding:10px; font-size:1em; }
+button{ padding:10px 25px; border:none; border-radius:10px; background:#6366F1;color:white; cursor:pointer; font-size:1.1em; }
+button:hover{ transform: scale(1.05); }
+</style>
+</head>
+<body>
+<header>
+  <img src="https://i.ibb.co/fVbJFkNx/large.png" alt="Logo">
+  <span>Side Talk - Report / Safety</span>
+</header>
+
+<textarea id="report-text" placeholder="Write your report or complaint here..."></textarea>
+<button onclick="sendReport()">Send Report</button>
+</body>
+</html>
