@@ -1,0 +1,219 @@
+/* ===========================
+   GLOBAL RESET & BASE
+=========================== */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+}
+
+body {
+    background-color: #F9FAFB;
+    color: #111827;
+    font-size: 16px;
+    line-height: 1.5;
+}
+
+/* ===========================
+   HEADER
+=========================== */
+header {
+    background-color: #1E3A8A; /* Deep Blue for modern tech feel */
+    color: #fff;
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+header img {
+    height: 40px;
+}
+
+header span {
+    font-size: 1.2rem;
+    font-weight: bold;
+}
+
+/* ===========================
+   BUTTONS
+=========================== */
+button {
+    background-color: #6366F1; /* Modern Purple */
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-weight: bold;
+    font-size: 1rem;
+}
+
+button:hover {
+    transform: scale(1.05);
+    background-color: #4F46E5; /* Slightly darker purple */
+}
+
+/* ===========================
+   MAIN & CARDS
+=========================== */
+main, .main, #rooms-container, #ads-container, #clans-container, #partners-container, #logs-container, #reports-container {
+    padding: 20px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    justify-content: center;
+}
+
+.card, .room-card, .ad-card, .clan-card, .partner-card, .report-card, .log-card {
+    background-color: #fff;
+    padding: 15px 20px;
+    border-radius: 15px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    transition: transform 0.2s, box-shadow 0.2s;
+    min-width: 200px;
+    flex: 1 1 220px;
+    text-align: center;
+}
+
+.card:hover, .room-card:hover, .ad-card:hover, .clan-card:hover, .partner-card:hover, .report-card:hover, .log-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 6px 18px rgba(0,0,0,0.15);
+}
+
+/* ===========================
+   INPUTS & TEXTAREAS
+=========================== */
+input, textarea, select {
+    width: 80%;
+    padding: 12px;
+    margin: 15px auto;
+    display: block;
+    border-radius: 12px;
+    border: 1px solid #D1D5DB;
+    font-size: 1rem;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+input:focus, textarea:focus, select:focus {
+    border-color: #6366F1;
+}
+
+/* ===========================
+   CHAT STYLING
+=========================== */
+.chat-container {
+    max-width: 800px;
+    margin: 20px auto;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.message {
+    background-color: #E5E7EB;
+    padding: 12px 15px;
+    border-radius: 12px;
+    max-width: 70%;
+    word-wrap: break-word;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+    position: relative;
+    transition: transform 0.2s;
+}
+
+.message:hover {
+    transform: scale(1.02);
+}
+
+.message.admin {
+    background-color: #6366F1;
+    color: #fff;
+}
+
+.message .username {
+    font-weight: bold;
+    font-size: 0.9rem;
+    margin-bottom: 3px;
+    cursor: pointer;
+}
+
+.message .timestamp {
+    font-size: 0.7rem;
+    color: #6B7280;
+    position: absolute;
+    bottom: 4px;
+    right: 8px;
+}
+
+/* ===========================
+   RESPONSIVE
+=========================== */
+@media screen and (max-width: 768px) {
+    header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .card, .room-card, .ad-card, .clan-card, .partner-card, .report-card, .log-card {
+        min-width: 100%;
+    }
+}
+
+/* ===========================
+   SPECIAL STYLES
+=========================== */
+.zoom-logo {
+    animation: zoom 3s infinite alternate;
+}
+
+@keyframes zoom {
+    from { transform: scale(1); }
+    to { transform: scale(1.2); }
+}
+
+/* Banner Ads */
+.banner-ad {
+    background-color: #FBBF24;
+    padding: 10px 15px;
+    border-radius: 12px;
+    text-align: center;
+    font-weight: bold;
+    margin: 15px 0;
+}
+
+/* Plus button like WhatsApp create group */
+.plus-btn {
+    font-size: 2rem;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background-color: #6366F1;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.plus-btn:hover {
+    transform: scale(1.1);
+}
+
+/* Links inside cards */
+.card a, .room-card a, .ad-card a, .clan-card a, .partner-card a {
+    text-decoration: none;
+    color: #1E3A8A;
+    font-weight: bold;
+}
+
+.card a:hover, .room-card a:hover, .ad-card a:hover, .clan-card a:hover, .partner-card a:hover {
+    color: #6366F1;
+  }
